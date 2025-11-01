@@ -1,0 +1,14 @@
+[Unit]
+Description=Download custom_components using a git helper container on first boot
+After=network-online.target docker.service hassos-supervisor.service
+Requires=network-online.target docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/ha-customcomponents-setup.sh
+StandardOutput=journal
+StandardError=journal
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

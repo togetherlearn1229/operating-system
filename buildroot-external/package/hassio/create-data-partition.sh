@@ -5,12 +5,13 @@ build_dir=$1
 dst_dir=$2
 channel=$3
 docker_version=$4
+overlay_dir=$5 
 
 data_img="${dst_dir}/data.ext4"
 
 # Make image
 rm -f "${data_img}"
-truncate --size="1280M" "${data_img}"
+truncate --size="9280M" "${data_img}"
 mkfs.ext4 -L "hassos-data" -E lazy_itable_init=0,lazy_journal_init=0 "${data_img}"
 
 # Mount / init file structs
@@ -26,6 +27,16 @@ container=$(docker run --privileged -e DOCKER_TLS_CERTDIR="" \
 	-d "docker:${docker_version}-dind" --feature containerd-snapshotter)
 
 docker exec "${container}" sh /build/dind-import-containers.sh "${channel}"
+
+# 掛載數據分區後，複製 SSH KEY 這個如果寫在 hassio.mk 裡面會被 mkfs.ext4 覆蓋掉
+if [ -d "${overlay_dir}/data/haos-ssh" ]; then
+    sudo mkdir -p "${build_dir}/data/haos-ssh"
+    sudo cp -a "${overlay_dir}/data/haos-ssh/"* "${build_dir}/data/haos-ssh/"
+    sudo chmod 700 "${build_dir}/data/haos-ssh"
+    sudo chmod 600 "${build_dir}/data/haos-ssh/id_ed25519" || true
+    sudo chmod 644 "${build_dir}/data/haos-ssh/id_ed25519.pub" || true
+    sudo chmod 644 "${build_dir}/data/haos-ssh/known_hosts" || true
+fi
 
 docker stop "${container}"
 
